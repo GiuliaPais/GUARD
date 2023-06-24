@@ -1,0 +1,4 @@
+rootProject.name = 'GUARD'
+
+include('admin-server', 'admin-client', 'robots-network')
+
