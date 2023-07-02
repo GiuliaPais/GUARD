@@ -1,7 +1,46 @@
 plugins {
-    id 'java'
+    id 'application'
+    id 'war'
 }
 
 repositories {
     mavenCentral()
+}
+
+application {
+    mainClass = 'io.github.giuliapais.adminserver.AdminServerMain'
+}
+
+dependencies {
+    // https://mvnrepository.com/artifact/org.glassfish.jersey.containers/jersey-container-grizzly2-http
+    implementation group: 'org.glassfish.jersey.containers', name: 'jersey-container-grizzly2-http', version: '3.1.2'
+    // https://mvnrepository.com/artifact/org.glassfish.jersey.containers/jersey-container-grizzly2-servlet
+    implementation group: 'org.glassfish.jersey.containers', name: 'jersey-container-grizzly2-servlet', version: '3.1.2'
+    // https://mvnrepository.com/artifact/org.glassfish.jersey.core/jersey-client
+    implementation group: 'org.glassfish.jersey.core', name: 'jersey-client', version: '3.1.2'
+    // https://mvnrepository.com/artifact/jakarta.xml.bind/jakarta.xml.bind-api
+    implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api', version: '4.0.0'
+    // https://mvnrepository.com/artifact/org.glassfish.jersey.inject/jersey-hk2
+    implementation group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version: '3.1.2'
+    // https://mvnrepository.com/artifact/org.glassfish.jersey.media/jersey-media-moxy
+    implementation group: 'org.glassfish.jersey.media', name: 'jersey-media-moxy', version: '3.1.2'
+    implementation project(path: ':commons')
+    // JAXB implementation
+    runtimeOnly 'org.glassfish.jaxb:jaxb-runtime:3.0.1'
+    // https://mvnrepository.com/artifact/com.diogonunes/JColor
+    implementation group: 'com.diogonunes', name: 'JColor', version: '5.5.1'
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
+    testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: '5.10.0-M1'
+    // https://mvnrepository.com/artifact/org.mockito/mockito-core
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.4.0'
+    // https://mvnrepository.com/artifact/org.mockito/mockito-junit-jupiter
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.4.0'
+}
+
+run {
+    standardInput = System.in
+}
+
+test {
+    useJUnitPlatform()
 }

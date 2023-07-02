@@ -1,4 +1,4 @@
 rootProject.name = 'GUARD'
 
-include('admin-server', 'admin-client', 'robots-network')
+include('admin-server', 'admin-client', 'robots-network', 'commons')
 

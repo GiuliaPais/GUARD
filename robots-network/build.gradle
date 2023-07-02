@@ -1,7 +1,11 @@
 plugins {
-    id 'java'
+    id 'application'
 }
 
 repositories {
     mavenCentral()
+}
+
+application {
+    mainClass = 'io.github.giuliapais.robotsnetwork.RobotLauncher'
 }
