@@ -79,8 +79,8 @@ class DistrictBalancerTest {
         HashMap<Integer, Byte> robotRegister = (HashMap<Integer, Byte>) robotRegisterField.get(districtBalancer);
         HashMap<Byte, Integer> districtRegister = (HashMap<Byte, Integer>) districtRegisterField.get(districtBalancer);
         // Moving a robot that exists
-        boolean moved = districtBalancer.changeDistrict(1, (byte) 4);
-        assertTrue(moved);
+        int moved = districtBalancer.changeDistrict(1, (byte) 4);
+        assertEquals(0, moved);
         assertEquals(4, robotRegister.size());
         assertTrue(robotRegister.containsKey(1) && robotRegister.get(1) == 4);
         assertEquals(4, districtRegister.size());
@@ -88,11 +88,11 @@ class DistrictBalancerTest {
         assertTrue(districtRegister.containsKey((byte) 4) && districtRegister.get((byte) 4) == 2);
         // Moving a robot to the same district
         moved = districtBalancer.changeDistrict(1, (byte) 4);
-        assertFalse(moved);
+        assertEquals(2, moved);
 
         // Moving a robot that doesn't exist
         moved = districtBalancer.changeDistrict(10, (byte) 4);
-        assertFalse(moved);
+        assertEquals(1, moved);
     }
 
     @Test

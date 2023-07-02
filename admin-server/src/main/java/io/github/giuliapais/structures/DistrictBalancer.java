@@ -53,17 +53,17 @@ public class DistrictBalancer {
         return true;
     }
 
-    public synchronized boolean changeDistrict(int robotId, byte newDistrict) {
+    public synchronized int changeDistrict(int robotId, byte newDistrict) {
         if (!robotRegister.containsKey(robotId)) {
-            return false;
+            return 1;
         }
         if (robotRegister.get(robotId) == newDistrict) {
-            return false;
+            return 2;
         }
         byte oldDistrict = robotRegister.get(robotId);
         robotRegister.replace(robotId, newDistrict);
         districtRegister.replace(oldDistrict, districtRegister.get(oldDistrict) - 1);
         districtRegister.replace(newDistrict, districtRegister.get(newDistrict) + 1);
-        return true;
+        return 0;
     }
 }

@@ -18,6 +18,8 @@ public class RobotHashMap {
 
     /**
      * Returns a deep copy of the internal HashMap.
+     *
+     * @return a deep copy of the internal HashMap<Integer, Robot>
      */
     public HashMap<Integer, Robot> getMap() {
         HashMap<Integer, Robot> copy = new HashMap<>();
@@ -53,41 +55,27 @@ public class RobotHashMap {
         return internalMap.remove(key) != null;
     }
 
-    public synchronized Robot update(int key, Robot newValue,
-                                     DistrictBalancer districtBalancer) {
+    public synchronized boolean update(int key, Robot newValue) {
         if (!internalMap.containsKey(key)) {
-            return null;
+            return false;
         }
         Robot old = internalMap.get(key);
         if (old.equals(newValue)) {
-            return newValue;
+            return false;
         }
-        Robot toReturn = new Robot();
-        toReturn.setId(key);
         if (newValue.getIpAddress() != null &&
                 !newValue.getIpAddress().equals(old.getIpAddress())) {
-            toReturn.setIpAddress(newValue.getIpAddress());
+            old.setIpAddress(newValue.getIpAddress());
         } else {
-            toReturn.setIpAddress(old.getIpAddress());
+            old.setIpAddress(old.getIpAddress());
         }
         if (newValue.getPort() != 0 &&
                 newValue.getPort() != old.getPort()) {
-            toReturn.setPort(newValue.getPort());
+            old.setPort(newValue.getPort());
         } else {
-            toReturn.setPort(old.getPort());
+            old.setPort(old.getPort());
         }
-        if (newValue.getDistrict() != 0 &&
-                newValue.getDistrict() != old.getDistrict()) {
-            toReturn.setDistrict(newValue.getDistrict());
-            toReturn.setPosition(
-                    districtBalancer.getPosInDistrict(newValue.getDistrict()));
-            districtBalancer.changeDistrict(toReturn.getId(),
-                    toReturn.getDistrict());
-        } else {
-            toReturn.setDistrict(old.getDistrict());
-            toReturn.setPosition(old.getPosition());
-        }
-        internalMap.replace(key, toReturn);
-        return toReturn;
+        internalMap.replace(key, old);
+        return true;
     }
 }

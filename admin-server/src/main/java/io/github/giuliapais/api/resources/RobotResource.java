@@ -1,6 +1,8 @@
 package io.github.giuliapais.api.resources;
 
+import io.github.giuliapais.api.models.MapPosition;
 import io.github.giuliapais.api.models.Robot;
+import io.github.giuliapais.api.models.RobotCreateResponse;
 import io.github.giuliapais.api.services.RobotService;
 import io.github.giuliapais.exceptions.IdPresentException;
 import jakarta.ws.rs.*;
@@ -21,7 +23,7 @@ public class RobotResource {
     }
 
     @POST
-    public Robot register(Robot robot) throws IdPresentException {
+    public RobotCreateResponse register(Robot robot) throws IdPresentException {
         return robotService.addRobot(robot);
     }
 
@@ -41,12 +43,28 @@ public class RobotResource {
     @PUT
     @Path("{id}")
     public Response update(@PathParam("id") int id, Robot robot) {
-        Robot updated = robotService.updateRobot(id, robot);
-        if (updated == null) {
-            return Response.status(Response.Status.NOT_FOUND).build();
+        boolean updated = robotService.updateRobot(id, robot);
+        if (!updated) {
+            return Response.status(Response.Status.NOT_MODIFIED).build();
         } else {
             return Response
-                    .ok(updated)
+                    .ok()
+                    .build();
+        }
+    }
+
+    @PUT
+    @Path("{id}/position")
+    public Response updatePosition(@PathParam("id") int id, MapPosition newPos) {
+        int status = robotService.updatePosition(id, newPos);
+        if (status == 1) {
+            return Response.status(Response.Status.NOT_FOUND).build();
+        } else if (status == 2) {
+            return Response.status(Response.Status.NOT_MODIFIED).build();
+        } else {
+            return Response
+                    .ok()
+                    .entity(newPos)
                     .build();
         }
     }

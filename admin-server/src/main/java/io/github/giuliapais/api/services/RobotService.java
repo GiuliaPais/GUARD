@@ -1,6 +1,8 @@
 package io.github.giuliapais.api.services;
 
+import io.github.giuliapais.api.models.MapPosition;
 import io.github.giuliapais.api.models.Robot;
+import io.github.giuliapais.api.models.RobotCreateResponse;
 import io.github.giuliapais.exceptions.IdPresentException;
 import io.github.giuliapais.structures.DistrictBalancer;
 import io.github.giuliapais.structures.RobotHashMap;
@@ -29,13 +31,23 @@ public class RobotService {
         return result;
     }
 
-    public Robot addRobot(Robot robot) throws IdPresentException {
-        robots.put(robot);
+    public RobotCreateResponse addRobot(Robot robot) throws IdPresentException {
+        List<Robot> activeRobots = null;
+        synchronized (this) {
+            activeRobots = List.copyOf(robots.getMap().values());
+            robots.put(robot);
+        }
         byte assignedDistrict = districtBalancer.addRobot(robot.getId());
         byte[] pos = districtBalancer.getPosInDistrict(assignedDistrict);
-        robot.setDistrict(assignedDistrict);
-        robot.setPosition(pos);
-        return robot;
+        RobotCreateResponse response = new RobotCreateResponse();
+        MapPosition mapPosition = new MapPosition();
+        mapPosition.setDistrict(assignedDistrict);
+        mapPosition.setX(pos[0]);
+        mapPosition.setY(pos[1]);
+        response.setMapPosition(mapPosition);
+        response.setActiveRobots(activeRobots);
+        response.setIdentity(robot);
+        return response;
     }
 
     public boolean removeRobot(int id) {
@@ -48,7 +60,18 @@ public class RobotService {
         return List.copyOf(robots.getMap().values());
     }
 
-    public Robot updateRobot(int id, Robot robot) {
-        return robots.update(id, robot, districtBalancer);
+    public boolean updateRobot(int id, Robot robot) {
+        return robots.update(id, robot);
     }
+
+    public int updatePosition(int id, MapPosition newPos) {
+        int changed = districtBalancer.changeDistrict(id, (byte) newPos.getDistrict());
+        if (changed == 0) {
+            byte[] pos = districtBalancer.getPosInDistrict((byte) newPos.getDistrict());
+            newPos.setX(pos[0]);
+            newPos.setY(pos[1]);
+        }
+        return changed;
+    }
+
 }
