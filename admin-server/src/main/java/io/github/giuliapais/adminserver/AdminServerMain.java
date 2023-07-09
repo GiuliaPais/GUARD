@@ -2,7 +2,7 @@ package io.github.giuliapais.adminserver;
 
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
-import org.glassfish.jersey.moxy.json.MoxyJsonFeature;
+import org.glassfish.jersey.jackson.JacksonFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 
 import java.io.BufferedReader;
@@ -16,7 +16,7 @@ public class AdminServerMain {
         ResourceConfig config = new ResourceConfig()
                 .packages("io.github.giuliapais.api",
                         "io.github.giuliapais.exceptions")
-                .register(MoxyJsonFeature.class);
+                .register(JacksonFeature.class);
         URI uri = URI.create("http://localhost:9090/api");
         HttpServer httpServer = GrizzlyHttpServerFactory.createHttpServer(uri, config);
         httpServer.start();
