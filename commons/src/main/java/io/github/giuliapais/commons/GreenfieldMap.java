@@ -9,21 +9,21 @@ public class GreenfieldMap {
     public GreenfieldMap() {
         districts = new District[4];
         for (int i = 1; i < 5; i++) {
-            byte[] temp_x = new byte[2];
-            byte[] temp_y = new byte[2];
+            int[] temp_x = new int[2];
+            int[] temp_y = new int[2];
             if (i <= 2) {
                 temp_x[1] = (width / 2) - 1;
             } else {
-                temp_x[0] = (byte) (width / 2);
-                temp_x[1] = (byte) (width - 1);
+                temp_x[0] = (width / 2);
+                temp_x[1] = (width - 1);
             }
             if (i == 1 || i == 4) {
                 temp_y[1] = (height / 2) - 1;
             } else {
-                temp_y[0] = (byte) (height / 2);
-                temp_y[1] = (byte) (height - 1);
+                temp_y[0] = (height / 2);
+                temp_y[1] = (height - 1);
             }
-            districts[i - 1] = new District((byte) i, temp_x, temp_y);
+            districts[i - 1] = new District(i, temp_x, temp_y);
         }
     }
 
@@ -31,7 +31,7 @@ public class GreenfieldMap {
         return districts;
     }
 
-    public District getDistrict(byte id) {
+    public District getDistrict(int id) {
         return districts[id - 1];
     }
 
@@ -43,11 +43,11 @@ public class GreenfieldMap {
         return height;
     }
 
-    public boolean inDistrict(byte x, byte y, byte district) {
+    public boolean inDistrict(int x, int y, int district) {
         return districts[district - 1].inDistrict(x, y);
     }
 
-    public boolean inDistrict(byte[] coords, byte district) {
+    public boolean inDistrict(int[] coords, int district) {
         return districts[district - 1].inDistrict(coords);
     }
 }

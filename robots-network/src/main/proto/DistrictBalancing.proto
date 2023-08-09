@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.github.giuliapais.robotsnetwork.comm";
+
+service DistrictBalancing {
+  rpc LoadBalancingInitiation (LoadBalancingRequest) returns (LoadBalancingResponse) {}
+  rpc LoadBalancingTermination (LoadBalancingTerminationMessage) returns (LoadBalancingTerminationAck) {}
+}
+
+message LoadBalancingRequest {
+  int32 robotId = 1;
+  int64 timestamp = 2;
+}
+
+message LoadBalancingResponse {
+  int32 robotId = 1;
+  int64 timestamp = 2;
+  bool allowed = 3;
+  int32 district = 4;
+}
+
+message LoadBalancingTerminationMessage {
+  int32 robotId = 1;
+  int64 timestamp = 2;
+  message Change {
+    int32 robotId = 1;
+    int32 newDistrict = 2;
+  }
+  repeated Change changes = 3;
+}
+
+message LoadBalancingTerminationAck {
+  int32 robotId = 1;
+  int64 timestamp = 2;
+  optional int32 x = 3;
+  optional int32 y = 4;
+}
+
+
+
+

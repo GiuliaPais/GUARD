@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.github.giuliapais.robotsnetwork.comm";
+
+/*
+  The service is used to introduce the requesting robot to the network
+  upon initialization.
+*/
+service IntroduceMe {
+  rpc introduceMe (IntroduceMeRequest) returns (IntroduceMeResponse) {}
+}
+
+// A request for introduction contains the robot id, the ip address and the port
+// for communication and the position on the grid.
+message IntroduceMeRequest {
+  int32 robotId = 1;
+  string ipAddress = 2;
+  int32 port = 3;
+  int32 district = 4;
+}
+
+// A response to a request is simply an ACK containing the respondent robot id.
+message IntroduceMeResponse {
+  int32 robotId = 1;
+  int32 district = 2;
+}

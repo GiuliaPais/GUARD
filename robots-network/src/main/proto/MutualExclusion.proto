@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.github.giuliapais.robotsnetwork.comm";
+
+service RepairService {
+  rpc RequestRepair (RepairRequest) returns (RepairResponse) {}
+  rpc AccessCrashDetection (AccessRequest) returns (AccessResponse) {}
+}
+
+message RepairRequest {
+  int32 robotId = 1;
+  int64 timestamp = 2;
+}
+
+message RepairResponse {
+  bool accepted = 1;
+  int64 timestamp = 2;
+}
+
+message AccessRequest {
+  int32 robotId = 1;
+  int64 timestamp = 2;
+  string type = 3;
+}
+
+message AccessResponse {
+  int32 robotId = 1;
+  int64 timestamp = 2;
+}

@@ -1,10 +1,13 @@
 package io.github.giuliapais.robotsnetwork;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.giuliapais.robotsnetwork.core.CleaningRobot;
+import io.github.giuliapais.robotsnetwork.comm.Peer;
+import io.github.giuliapais.utils.InputValidator;
 import io.github.giuliapais.utils.MessagePrinter;
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonReader;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
@@ -13,14 +16,14 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import picocli.CommandLine;
-import io.github.giuliapais.utils.InputValidator;
 
-import java.io.StringReader;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Scanner;
 
 
@@ -51,9 +54,8 @@ public class RobotLauncher implements Runnable {
 
     private String selfIpAddress;
 
-    private final MessagePrinter messagePrinter = new MessagePrinter();
-    private Client client;
-    private final CleaningRobot cleaningRobot = new CleaningRobot();
+    private static Client client;
+    private static CleaningRobot cleaningRobot;
 
     private static Scanner scanner;
 
@@ -62,14 +64,14 @@ public class RobotLauncher implements Runnable {
         field.setAccessible(true);
         InputValidator.ValidationResult validationResult = InputValidator.validate(which, field.get(this));
         if (validationResult.code() != 0) {
-            messagePrinter.printParamErrorMessage(which);
-            messagePrinter.printMessage(MessagePrinter.CMD_PROMPT, MessagePrinter.ERROR_FORMAT, false);
+            MessagePrinter.printParamErrorMessage(which);
+            MessagePrinter.printMessage(MessagePrinter.CMD_PROMPT, MessagePrinter.ERROR_FORMAT, false);
             boolean valid = false;
             InputValidator.ValidationResult newValidationResult;
             while (!valid) {
                 String input = scanner.nextLine();
                 if (input.equals("q")) {
-                    messagePrinter.printQuitMessage();
+                    MessagePrinter.printQuitMessage();
                     System.exit(0);
                 }
                 newValidationResult = InputValidator.validate(which, input);
@@ -81,9 +83,9 @@ public class RobotLauncher implements Runnable {
                     }
                     valid = true;
                 } else {
-                    messagePrinter.printMessage(newValidationResult.message(),
+                    MessagePrinter.printMessage(newValidationResult.message(),
                             MessagePrinter.ERROR_FORMAT, true);
-                    messagePrinter.printMessage(MessagePrinter.CMD_PROMPT, MessagePrinter.ERROR_FORMAT, false);
+                    MessagePrinter.printMessage(MessagePrinter.CMD_PROMPT, MessagePrinter.ERROR_FORMAT, false);
                 }
             }
         }
@@ -98,8 +100,8 @@ public class RobotLauncher implements Runnable {
         checkInput("serverAddress");
     }
 
-    private JsonObject registerToServer() {
-        messagePrinter.printMessage("Sending registration request to the server...",
+    private JsonNode registerToServer() {
+        MessagePrinter.printMessage("Sending registration request to the server...",
                 MessagePrinter.INFO_FORMAT, true);
         client = ClientBuilder
                 .newBuilder()
@@ -109,7 +111,7 @@ public class RobotLauncher implements Runnable {
             InetAddress inetAddress = InetAddress.getLocalHost();
             this.selfIpAddress = inetAddress.getHostAddress();
         } catch (UnknownHostException e) {
-            messagePrinter.printMessage("Could not retrieve local IP address. " +
+            MessagePrinter.printMessage("Could not retrieve local IP address. " +
                             "Please check your network connection and try again.",
                     MessagePrinter.ERROR_FORMAT, true);
         }
@@ -123,64 +125,106 @@ public class RobotLauncher implements Runnable {
                     .request(MediaType.APPLICATION_JSON)
                     .post(Entity.json(payLoad));
             String entity = serverResponse.readEntity(String.class);
-            JsonReader jsonReader = Json.createReader(new StringReader(entity));
-            JsonObject jsonObject = jsonReader.readObject();
-            jsonReader.close();
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonObject = objectMapper.readTree(entity);
             if (serverResponse.getStatus() == 200) {
-                messagePrinter.printRegisterSuccessMessage(jsonObject);
+                MessagePrinter.printRegisterSuccessMessage(jsonObject);
                 return jsonObject;
             } else {
-                messagePrinter.printRegisterFailureMessage(jsonObject);
+                MessagePrinter.printRegisterFailureMessage(jsonObject);
                 return null;
             }
         } catch (ProcessingException e) {
             if (e.getCause() instanceof ConnectException) {
-                messagePrinter.printMessage("Could not establish a connection to the server :(",
+                MessagePrinter.printMessage("Could not establish a connection to the server :(",
                         MessagePrinter.ERROR_FORMAT,
                         true);
             } else {
-                messagePrinter.printMessage("Something went wrong in processing the request :(",
+                MessagePrinter.printMessage("Something went wrong in processing the request :(",
                         MessagePrinter.ERROR_FORMAT, true);
             }
             return null;
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @Override
     public void run() {
         scanner = new Scanner(System.in);
-        messagePrinter.printWelcomeMessage();
+        MessagePrinter.printWelcomeMessage();
         try {
             checkAndFixInputs();
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
-        JsonObject serverResponse = registerToServer();
+        JsonNode serverResponse = registerToServer();
         if (serverResponse == null) {
             System.exit(0);
         }
-        int assignedDistrict = serverResponse.getJsonObject("mapPosition").getInt("district");
-        int assignedX = serverResponse.getJsonObject("mapPosition").getInt("x");
-        int assignedY = serverResponse.getJsonObject("mapPosition").getInt("y");
-        cleaningRobot.setRobotId(this.id);
-        cleaningRobot.setPort(this.port);
-        cleaningRobot.setServerAddress(this.serverAddress);
-        cleaningRobot.setDistrict(assignedDistrict);
-        cleaningRobot.setX(assignedX);
-        cleaningRobot.setY(assignedY);
-        cleaningRobot.setMessagePrinter(this.messagePrinter);
-        cleaningRobot.start();
-        while (true) {
-            String input = scanner.nextLine();
-            if (input.equals("q")) {
-                messagePrinter.printQuitMessage();
-                System.exit(0);
+        int assignedDistrict = serverResponse.get("mapPosition").get("district").asInt();
+        int assignedX = serverResponse.get("mapPosition").get("x").asInt();
+        int assignedY = serverResponse.get("mapPosition").get("y").asInt();
+        JsonNode activeRobots = serverResponse.get("activeRobots");
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            List<Peer> activePeers = objectMapper.readerFor(new TypeReference<List<Peer>>() {
+            }).readValue(activeRobots);
+            cleaningRobot = new CleaningRobot(
+                    this.id, this.port,
+                    this.serverAddress,
+                    assignedDistrict, assignedX, assignedY,
+                    activePeers,
+                    this.selfIpAddress,
+                    client,
+                    "http://" + this.serverAddress + this.API_ADDRESS);
+            cleaningRobot.start();
+            MessagePrinter.printAvailableCommands();
+            MessagePrinter.printMessage(MessagePrinter.CMD_PROMPT, MessagePrinter.ACCENT_FORMAT_2, false);
+            while (true) {
+                String input = scanner.nextLine();
+                if (input.equals("help") || (!input.equals("quit") & !input.equals("fix"))) {
+                    MessagePrinter.printAvailableCommands();
+                    MessagePrinter.printMessage(MessagePrinter.CMD_PROMPT,
+                            MessagePrinter.ACCENT_FORMAT_2, false);
+                    continue;
+                }
+                if (input.equals("quit")) {
+                    MessagePrinter.printQuitMessage();
+                    if (cleaningRobot.isAlive()) {
+                        cleaningRobot.stopMeGently();
+                    }
+                    System.exit(0);
+                }
+                cleaningRobot.requestRepair();
             }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
     public static void main(String[] args) {
-        System.exit(new CommandLine(new RobotLauncher()).execute(args));
+//        Thread.setDefaultUncaughtExceptionHandler(
+//                (t, e) -> {
+//                    MessagePrinter.printMessage(">>> Something went wrong!" +
+//                                    MessagePrinter.STRING_SEP +
+//                                    e.getMessage() +
+//                                    MessagePrinter.STRING_SEP +
+//                                    e.getCause().getMessage(),
+//                            MessagePrinter.ERROR_FORMAT, true);
+//                    MessagePrinter.printQuitMessage();
+//                    if (cleaningRobot.isAlive()) {
+//                        cleaningRobot.stopMeGently();
+//                    }
+//                    if (client != null) {
+//                        client.close();
+//                    }
+//                    System.exit(0);
+//                }
+//        );
+        RobotLauncher robotLauncher = new RobotLauncher();
+        int exitCode = new CommandLine(robotLauncher).execute(args);
+        System.exit(exitCode);
     }
 
 

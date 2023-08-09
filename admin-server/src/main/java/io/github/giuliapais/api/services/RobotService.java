@@ -4,7 +4,7 @@ import io.github.giuliapais.api.models.MapPosition;
 import io.github.giuliapais.api.models.Robot;
 import io.github.giuliapais.api.models.RobotCreateResponse;
 import io.github.giuliapais.exceptions.IdPresentException;
-import io.github.giuliapais.structures.DistrictBalancer;
+import io.github.giuliapais.commons.DistrictBalancer;
 import io.github.giuliapais.structures.RobotHashMap;
 
 import java.util.List;
@@ -37,8 +37,8 @@ public class RobotService {
             activeRobots = List.copyOf(robots.getMap().values());
             robots.put(robot);
         }
-        byte assignedDistrict = districtBalancer.addRobot(robot.getId());
-        byte[] pos = districtBalancer.getPosInDistrict(assignedDistrict);
+        Integer assignedDistrict = districtBalancer.addRobot(robot.getId());
+        int[] pos = districtBalancer.getPosInDistrict(assignedDistrict);
         RobotCreateResponse response = new RobotCreateResponse();
         MapPosition mapPosition = new MapPosition();
         mapPosition.setDistrict(assignedDistrict);
@@ -65,9 +65,9 @@ public class RobotService {
     }
 
     public int updatePosition(int id, MapPosition newPos) {
-        int changed = districtBalancer.changeDistrict(id, (byte) newPos.getDistrict());
+        int changed = districtBalancer.changeDistrict(id, newPos.getDistrict());
         if (changed == 0) {
-            byte[] pos = districtBalancer.getPosInDistrict((byte) newPos.getDistrict());
+            int[] pos = districtBalancer.getPosInDistrict(newPos.getDistrict());
             newPos.setX(pos[0]);
             newPos.setY(pos[1]);
         }

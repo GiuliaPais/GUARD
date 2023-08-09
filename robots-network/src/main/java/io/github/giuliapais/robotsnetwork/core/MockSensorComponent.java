@@ -1,13 +1,13 @@
 package io.github.giuliapais.robotsnetwork.core;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.giuliapais.simulators.Measurement;
-import io.github.giuliapais.utils.MessagePrinter;
 import io.github.giuliapais.simulators.PM10Simulator;
+import io.github.giuliapais.utils.MessagePrinter;
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.OptionalDouble;
 
 public class MockSensorComponent extends Thread {
     private final String MQTT_BROKER_ADDRESS = "tcp://localhost:1883";
@@ -41,7 +41,7 @@ public class MockSensorComponent extends Thread {
         averagesPublisher.setMessagePrinter(messagePrinter);
     }
 
-    public void stopGracefully() {
+    public void stopMeGently() {
         stop = true;
     }
 
@@ -49,7 +49,7 @@ public class MockSensorComponent extends Thread {
         if (!averagesPublisher.isAlive()) {
             averagesPublisher.setDistrict(district);
         } else {
-            averagesPublisher.stopGracefully();
+            averagesPublisher.stopMeGently();
             averagesPublisher = new AveragesPublisher(averages);
             averagesPublisher.setDistrict(district);
             averagesPublisher.setRobotId(robotId);

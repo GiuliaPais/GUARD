@@ -26,7 +26,7 @@ public class AveragesPublisher extends Thread {
         this.averages = averages;
     }
 
-    public void stopGracefully() {
+    public void stopMeGently() {
         stop = true;
     }
 
@@ -118,6 +118,4 @@ public class AveragesPublisher extends Thread {
                 true
         );
     }
-
-
 }
