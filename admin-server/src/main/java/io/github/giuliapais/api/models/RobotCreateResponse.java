@@ -1,5 +1,6 @@
 package io.github.giuliapais.api.models;
 
+import io.github.giuliapais.commons.models.MapPosition;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.util.List;

@@ -1,6 +1,9 @@
 package io.github.giuliapais.commons;
 
+import io.github.giuliapais.commons.models.MapPosition;
+
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -8,15 +11,17 @@ import java.util.*;
  * robots in th grid.
  */
 public class DistrictBalancer {
-
+    /* ATTRIBUTES --------------------------------------------------------------------------------------------------- */
     private final GreenfieldMap greenfieldMap = new GreenfieldMap();
 
     // Maps each robot currently active in the grid to its district
     private final HashMap<Integer, Integer> robotRegister = new HashMap<>();
     // Maps each district to the number of robots (count) currently active in it
     private final HashMap<Integer, Integer> districtRegister;
+    private final HashMap<Integer, MapPosition> robotPositions = new HashMap<>();
     private final Random random = new Random();
 
+    /* CONSTRUCTORS ------------------------------------------------------------------------------------------------- */
     public DistrictBalancer() {
         int nDistricts = greenfieldMap.getDistricts().length;
         districtRegister = new HashMap<>(nDistricts);
@@ -25,8 +30,17 @@ public class DistrictBalancer {
         }
     }
 
+    /* METHODS ------------------------------------------------------------------------------------------------------ */
+    /* Private --------- */
+
+
+    /* Public ---------- */
     public synchronized int getDistrict(int robotId) {
         return robotRegister.get(robotId);
+    }
+
+    public synchronized MapPosition getRobotPosition(int robotId) {
+        return robotPositions.get(robotId);
     }
 
     /**
@@ -44,15 +58,17 @@ public class DistrictBalancer {
 
     /**
      * Adds a robot to the grid, assigning it to the less crowded district. If the load in all districts is equal,
-     * it follows the natural order of numbering (from 1 to n).
+     * it follows the natural order of numbering (from 1 to n). It generates a random position in the chosen
+     * district that can be accessed through a call to {@link #getRobotPosition(int)}.
+     * <p>
+     * NOTE: used on admin-server to add robots to the grid.
      *
      * @param robotId the id of the robot to add
-     * @return the district id the robot has been assigned to
      */
-    public synchronized int addRobot(int robotId) {
+    public synchronized void addRobot(int robotId) {
         // Check if the robot is already registered
         if (robotRegister.containsKey(robotId)) {
-            return robotRegister.get(robotId);
+            return;
         }
         // Get the less crowded district
         Optional<Integer> lessCrowded = districtRegister.entrySet()
@@ -62,16 +78,34 @@ public class DistrictBalancer {
         Integer chosenDistrict = lessCrowded.orElse(1);
         robotRegister.put(robotId, chosenDistrict);
         districtRegister.replace(chosenDistrict, districtRegister.get(chosenDistrict) + 1);
-        return chosenDistrict;
+        int[] pos = getPosInDistrict(chosenDistrict);
+        robotPositions.put(robotId, new MapPosition(chosenDistrict, pos[0], pos[1]));
     }
 
-    public synchronized void addRobot(int robotId, int districtId) {
-        // Check if the robot is already registered
+    /**
+     * Adds a robot to the grid, at the given position.
+     * <p>
+     * NOTE: this method should be used only by the robot processes once registration to the server is completed.
+     *
+     * @param robotId  the id of the robot to add
+     * @param position the position of the robot
+     */
+    public synchronized void addRobot(int robotId, MapPosition position) {
+        // Check if the robot is already registered, if so update the position
         if (robotRegister.containsKey(robotId)) {
+            int oldDistrict = robotRegister.get(robotId);
+            int newDistrict = position.getDistrict();
+            if (oldDistrict != newDistrict) {
+                robotPositions.replace(robotId, position);
+                robotRegister.replace(robotId, position.getDistrict());
+                districtRegister.replace(oldDistrict, districtRegister.get(oldDistrict) - 1);
+                districtRegister.replace(newDistrict, districtRegister.get(newDistrict) + 1);
+            }
             return;
         }
-        robotRegister.put(robotId, districtId);
-        districtRegister.replace(districtId, districtRegister.get(districtId) + 1);
+        robotPositions.put(robotId, position);
+        robotRegister.put(robotId, position.getDistrict());
+        districtRegister.replace(position.getDistrict(), districtRegister.get(position.getDistrict()) + 1);
     }
 
     /**
@@ -87,58 +121,57 @@ public class DistrictBalancer {
         Integer district = robotRegister.get(robotId);
         robotRegister.remove(robotId);
         districtRegister.replace(district, districtRegister.get(district) - 1);
+        robotPositions.remove(robotId);
         return true;
     }
 
     /**
-     * Changes the assigned district for a robot.
+     * Given a map of changes, updates the positions of the robots in the grid in a synchronized way -
+     * all updates are performed as an atomic operation.
+     * <p>
+     * NOTE: used on admin-server to execute update from REST POST request.
      *
-     * @param robotId     the id of the robot to move
-     * @param newDistrict the id of the district to move the robot to
-     * @return 0 if the operation was successful, 1 if the robot id was not registered,
-     * 2 if the robot was already in the given district (no changes)
+     * @param changes the map of changes
      */
-    public synchronized int changeDistrict(int robotId, int newDistrict) {
+    public synchronized void updatePositions(HashMap<Integer, MapPosition> changes) {
+        for (Map.Entry<Integer, MapPosition> entry : changes.entrySet()) {
+            updatePosition(entry.getKey(), entry.getValue());
+        }
+    }
+
+    /**
+     * Updates the position of a robot in the grid. If the robot is not registered, it does nothing.
+     *
+     * @param robotId     the id of the robot to update
+     * @param mapPosition the new position of the robot
+     * @return 0 if the operation was successful, 1 if the robot id was not registered, 2 if the robot was already
+     * registered in the given district (no change)
+     */
+    public synchronized int updatePosition(int robotId, MapPosition mapPosition) {
         if (!robotRegister.containsKey(robotId)) {
             return 1;
         }
-        if (Objects.equals(robotRegister.get(robotId), newDistrict)) {
-            return 2;
+        robotPositions.replace(robotId, mapPosition);
+        int oldDistrict = robotRegister.get(robotId);
+        int newDistrict = mapPosition.getDistrict();
+        if (oldDistrict != newDistrict) {
+            robotRegister.replace(robotId, mapPosition.getDistrict());
+            districtRegister.replace(oldDistrict, districtRegister.get(oldDistrict) - 1);
+            districtRegister.replace(newDistrict, districtRegister.get(newDistrict) + 1);
+            return 0;
         }
-        Integer oldDistrict = robotRegister.get(robotId);
-        robotRegister.replace(robotId, newDistrict);
-        districtRegister.replace(oldDistrict, districtRegister.get(oldDistrict) - 1);
-        districtRegister.replace(newDistrict, districtRegister.get(newDistrict) + 1);
-        return 0;
+        return 2;
     }
 
     /**
-     * Changes the assigned district for a set of robots.
-     *
-     * @param changes a map of robot ids to new district ids
-     * @return an array of integers, each representing the result of the operation for the corresponding robot id
-     * (see {@link #changeDistrict(int, int)})
-     */
-    public synchronized int[] changeDistrict(HashMap<Integer, Integer> changes) {
-        int[] results = new int[changes.size()];
-        int i = 0;
-        for (Map.Entry<Integer, Integer> entry : changes.entrySet()) {
-            int code = changeDistrict(entry.getKey(), entry.getValue());
-            results[i] = code;
-            i++;
-        }
-        return results;
-    }
-
-    /**
-     * Upserts a set of robots to the grid. If a robot is already registered, it changes its district
+     * Upserts a set of robots to the grid. If a robot is already registered, it changes its position
      * (if needed), otherwise it adds it to the grid.
      *
-     * @param robotsToDistricts a map of robot ids to district ids
+     * @param robotsToPositions a map of robot ids to map positions
      */
-    public synchronized void upsert(HashMap<Integer, Integer> robotsToDistricts) {
-        for (Map.Entry<Integer, Integer> entry : robotsToDistricts.entrySet()) {
-            int code = changeDistrict(entry.getKey(), entry.getValue());
+    public synchronized void upsert(HashMap<Integer, MapPosition> robotsToPositions) {
+        for (Map.Entry<Integer, MapPosition> entry : robotsToPositions.entrySet()) {
+            int code = updatePosition(entry.getKey(), entry.getValue());
             if (code == 1) {
                 addRobot(entry.getKey(), entry.getValue());
             }
@@ -243,5 +276,17 @@ public class DistrictBalancer {
         }
 
         return changes;
+    }
+
+    public synchronized HashMap<Integer, List<Integer>> getSnapshot() {
+        HashMap<Integer, List<Integer>> gridStatus = (HashMap<Integer, List<Integer>>) robotRegister.entrySet().stream()
+                .collect(Collectors.groupingBy(Map.Entry::getValue,
+                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
+        for (District district : greenfieldMap.getDistricts()) {
+            if (!gridStatus.containsKey(district.id())) {
+                gridStatus.put(district.id(), new ArrayList<>());
+            }
+        }
+        return gridStatus;
     }
 }

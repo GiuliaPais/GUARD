@@ -4,7 +4,8 @@ option java_multiple_files = true;
 option java_package = "io.github.giuliapais.robotsnetwork.comm";
 
 service CrashRecovery {
-  rpc NotifyCrashEvent(CrashEvent) returns (NoResponse) {}
+  rpc NotifyCrashEvent(CrashEvent) returns (CrashEventResponse) {}
+  rpc PingRobot(PingMessage) returns (PingMessage) {}
 }
 
 message CrashEvent {
@@ -13,4 +14,12 @@ message CrashEvent {
   int64 timestamp = 3;
 }
 
-message NoResponse {}
+message CrashEventResponse {
+  int32 robotId = 1;
+  int32 crashedRobotId = 2;
+  int64 timestamp = 3;
+  bool isCrashed = 4;
+}
+
+message PingMessage {
+}

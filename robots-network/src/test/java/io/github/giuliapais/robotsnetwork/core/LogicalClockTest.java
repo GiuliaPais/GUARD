@@ -1,6 +1,6 @@
 package io.github.giuliapais.robotsnetwork.core;
 
-import io.github.giuliapais.robotsnetwork.comm.LogicalClock;
+import io.github.giuliapais.robotsnetwork.comm.p2p.LogicalClock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

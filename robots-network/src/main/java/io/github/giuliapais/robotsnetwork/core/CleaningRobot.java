@@ -1,12 +1,13 @@
 package io.github.giuliapais.robotsnetwork.core;
 
 import io.github.giuliapais.commons.DistrictBalancer;
-import io.github.giuliapais.robotsnetwork.comm.ActivePeers;
-import io.github.giuliapais.robotsnetwork.comm.P2PServiceManager;
-import io.github.giuliapais.robotsnetwork.comm.Peer;
-import jakarta.ws.rs.client.Client;
+import io.github.giuliapais.commons.models.MapPosition;
+import io.github.giuliapais.robotsnetwork.comm.p2p.ActivePeers;
+import io.github.giuliapais.robotsnetwork.comm.p2p.P2PServiceManager;
+import io.github.giuliapais.robotsnetwork.comm.p2p.Peer;
+import io.github.giuliapais.robotsnetwork.comm.rest.RestServiceManager;
+import io.github.giuliapais.utils.MessagePrinter;
 
-import java.net.URI;
 import java.util.List;
 import java.util.Random;
 
@@ -26,13 +27,8 @@ public class CleaningRobot extends Thread {
     /* ATTRIBUTES --------------------------------------------------------------------------------------------------- */
     private static final int REPAIR_CHANCE = 10; // 10%
     private static final int REPAIR_CHECK_INTERVAL = 10000; // 10 seconds
-    private final DistrictBalancer districtBalancer = new DistrictBalancer();
     private final int robotId;
-    private final int port;
-    private final String serverAddress;
-    private int district;
-    private int x;
-    private int y;
+    private final DistrictBalancer districtBalancer = new DistrictBalancer();
     private volatile boolean stop = false;
     private volatile boolean userRequestRepair = false;
     private final Random random = new Random();
@@ -44,77 +40,38 @@ public class CleaningRobot extends Thread {
 
     /* ---- Used for P2P communication */
     private final ActivePeers peers;
-    private String selfIpAddress;
 
 
     /* CONSTRUCTORS ------------------------------------------------------------------------------------------------- */
-    public CleaningRobot(int robotId, int port, String serverAddress, int district,
-                         int x, int y, List<Peer> peers, String selfIpAddress, Client restClient, String uriApi) {
+    public CleaningRobot(int robotId, int port, MapPosition mapPosition,
+                         List<Peer> peers, String selfIpAddress) {
         this.robotId = robotId;
-        this.port = port;
-        this.serverAddress = serverAddress;
-        this.district = district;
-        this.x = x;
-        this.y = y;
-        this.districtBalancer.addRobot(robotId, district);
+        this.districtBalancer.addRobot(robotId, mapPosition);
         this.peers = ActivePeers.getInstance();
         this.peers.addPeers(peers);
-        this.selfIpAddress = selfIpAddress;
-        this.mockSensorComponent = new MockSensorComponent();
-        this.p2pServiceManager = new P2PServiceManager(robotId, port, selfIpAddress, districtBalancer, restClient,
-                uriApi);
+        this.mockSensorComponent = new MockSensorComponent(robotId, mapPosition.getDistrict());
+        this.p2pServiceManager = new P2PServiceManager(robotId, port, selfIpAddress, districtBalancer);
     }
 
     /* METHODS ------------------------------------------------------------------------------------------------------ */
     /* Private --------- */
+    private void stopGently() {
+        // Stop P2PServiceManager components
+        p2pServiceManager.gracefulStop();
+        mockSensorComponent.interrupt();
+        // Send REST delete request to server
+        RestServiceManager.getInstance(null).deleteRobot(robotId, true);
+        // Interrupt this
+        MessagePrinter.printMessage(
+                "Leaving Greenfield... Bye!",
+                MessagePrinter.INFO_FORMAT,
+                true
+        );
+        Thread.currentThread().interrupt();
+    }
 
 
     /* Public ---------- */
-    /* -- Getters and setters */
-    public int getRobotId() {
-        return robotId;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public String getServerAddress() {
-        return serverAddress;
-    }
-
-    public int getDistrict() {
-        return district;
-    }
-
-    public void setDistrict(int district) {
-        this.district = district;
-        mockSensorComponent.setDistrict(district);
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public void setX(int x) {
-        this.x = x;
-    }
-
-    public int getY() {
-        return y;
-    }
-
-    public void setY(int y) {
-        this.y = y;
-    }
-
-
-    public String getSelfIpAddress() {
-        return selfIpAddress;
-    }
-
-
-    /* -- Other public methods */
     public void stopMeGently() {
         stop = true;
     }
@@ -123,23 +80,13 @@ public class CleaningRobot extends Thread {
         userRequestRepair = true;
     }
 
-//    private void stopAll() {
-//        if (mockSensorComponent != null && mockSensorComponent.isAlive()) {
-//            mockSensorComponent.stopMeGently();
-//        }
-//        if (grpcServer != null && !grpcServer.isShutdown()) {
-//            grpcServer.shutdown();
-//        }
-//    }
-
-
     @Override
     public void run() {
         // TODO: reactivate this
 //        MessagePrinter.printSensorInitMessage();
 
 //        mockSensorComponent.setUncaughtExceptionHandler((t, e) -> {
-//            messagePrinter.printMessage(
+//            MessagePrinter.printMessage(
 //                    "Something went wrong :(" +
 //                            MessagePrinter.STRING_SEP +
 //                            e.getMessage() +
@@ -148,15 +95,10 @@ public class CleaningRobot extends Thread {
 //                    MessagePrinter.ERROR_FORMAT,
 //                    true
 //            );
-//            messagePrinter.printQuitMessage();
+//            MessagePrinter.printQuitMessage();
 //            this.interrupt();
 //        });
-//        mockSensorComponent.start();
-//        try {
-//            mockSensorComponent.join();
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
+        mockSensorComponent.start();
 
         // Send introduction messages when joining the robots network
         p2pServiceManager.introduceMe();
@@ -167,19 +109,20 @@ public class CleaningRobot extends Thread {
         // - Implement graceful exit
 
         while (!stop) {
+            try {
+                Thread.sleep(REPAIR_CHECK_INTERVAL);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             // Check if the robot needs repairs
             if (this.userRequestRepair || random.nextInt(100) < REPAIR_CHANCE) {
                 userRequestRepair = false;
                 p2pServiceManager.requestRepair();
             }
-            try {
-                Thread.sleep(REPAIR_CHECK_INTERVAL);
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Interrupted while waiting for repair timeout", e);
-            }
         }
 
         // graceful exit
+        stopGently();
     }
 
 }

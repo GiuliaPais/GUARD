@@ -18,10 +18,14 @@ message IntroduceMeRequest {
   string ipAddress = 2;
   int32 port = 3;
   int32 district = 4;
+  int32 x = 5;
+  int32 y = 6;
 }
 
-// A response to a request is simply an ACK containing the respondent robot id.
+// A response to a request is an ack containing the robot id and its position on the grid.
 message IntroduceMeResponse {
   int32 robotId = 1;
   int32 district = 2;
+  int32 x = 3;
+  int32 y = 4;
 }

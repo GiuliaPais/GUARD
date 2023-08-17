@@ -1,4 +1,4 @@
-package io.github.giuliapais.api.models;
+package io.github.giuliapais.commons.models;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 

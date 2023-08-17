@@ -1,6 +1,9 @@
-package io.github.giuliapais.robotsnetwork.comm;
+package io.github.giuliapais.robotsnetwork.comm.p2p;
 
 import io.github.giuliapais.commons.DistrictBalancer;
+import io.github.giuliapais.commons.models.MapPosition;
+import io.github.giuliapais.robotsnetwork.comm.*;
+import io.github.giuliapais.utils.MessagePrinter;
 import io.grpc.stub.StreamObserver;
 
 import java.util.HashMap;
@@ -20,17 +23,26 @@ public class DistrictBalancingImpl extends DistrictBalancingGrpc.DistrictBalanci
     @Override
     public void loadBalancingInitiation(LoadBalancingRequest request,
                                         StreamObserver<LoadBalancingResponse> responseObserver) {
+        MessagePrinter.printMessage(
+                "Received load balancing initiation request from robot " +
+                        request.getRobotId() + " with timestamp " +
+                        request.getTimestamp(),
+                MessagePrinter.WARNING_FORMAT, true
+        );
         logicalClock.compareAndAdjust(request.getTimestamp());
         LoadBalancingMonitor.LoadBalancingState state = loadBalancingMonitor.getState();
         LoadBalancingResponse response;
+        MapPosition myPosition = districtBalancer.getRobotPosition(logicalClock.getRobotId());
         if (state == LoadBalancingMonitor.LoadBalancingState.STEADY ||
                 (state == LoadBalancingMonitor.LoadBalancingState.EVALUATING &
                         logicalClock.compareTimestamps(request.getTimestamp(),
-                                loadBalancingMonitor.getRequestTimestamp(), request.getRobotId()) > 0)) {
+                                loadBalancingMonitor.getRequestTimestamp(), request.getRobotId()) < 0)) {
             response = LoadBalancingResponse.newBuilder()
                     .setRobotId(logicalClock.getRobotId())
                     .setTimestamp(logicalClock.incrementAndGet())
-                    .setDistrict(districtBalancer.getDistrict(logicalClock.getRobotId()))
+                    .setDistrict(myPosition.getDistrict())
+                    .setX(myPosition.getX())
+                    .setY(myPosition.getY())
                     .setAllowed(true)
                     .build();
         } else {
@@ -39,7 +51,9 @@ public class DistrictBalancingImpl extends DistrictBalancingGrpc.DistrictBalanci
             response = LoadBalancingResponse.newBuilder()
                     .setRobotId(logicalClock.getRobotId())
                     .setTimestamp(logicalClock.incrementAndGet())
-                    .setDistrict(districtBalancer.getDistrict(logicalClock.getRobotId()))
+                    .setDistrict(myPosition.getDistrict())
+                    .setX(myPosition.getX())
+                    .setY(myPosition.getY())
                     .setAllowed(false)
                     .build();
         }
@@ -52,26 +66,20 @@ public class DistrictBalancingImpl extends DistrictBalancingGrpc.DistrictBalanci
                                          StreamObserver<LoadBalancingTerminationAck> responseObserver) {
         logicalClock.compareAndAdjust(request.getTimestamp());
         List<LoadBalancingTerminationMessage.Change> changes = request.getChangesList();
-        HashMap<Integer, Integer> changesMap = new HashMap<>();
+        HashMap<Integer, MapPosition> changesMap = new HashMap<>();
         for (LoadBalancingTerminationMessage.Change change : changes) {
-            changesMap.put(change.getRobotId(), change.getNewDistrict());
+            changesMap.put(change.getRobotId(), new MapPosition(change.getNewDistrict(), change.getNewX(),
+                    change.getNewY()));
         }
-        districtBalancer.changeDistrict(changesMap);
-        LoadBalancingTerminationAck response;
+        districtBalancer.updatePositions(changesMap);
         if (changesMap.containsKey(logicalClock.getRobotId())) {
-            int[] newPos = districtBalancer.getPosInDistrict(districtBalancer.getDistrict(logicalClock.getRobotId()));
-            response = LoadBalancingTerminationAck.newBuilder()
-                    .setRobotId(logicalClock.getRobotId())
-                    .setTimestamp(logicalClock.incrementAndGet())
-                    .setX(newPos[0])
-                    .setY(newPos[1])
-                    .build();
-        } else {
-            response = LoadBalancingTerminationAck.newBuilder()
-                    .setRobotId(logicalClock.getRobotId())
-                    .setTimestamp(logicalClock.incrementAndGet())
-                    .build();
+            ChangeDistrictMonitor.getInstance()
+                    .districtChanged(changesMap.get(logicalClock.getRobotId()).getDistrict());
         }
+        LoadBalancingTerminationAck response = LoadBalancingTerminationAck.newBuilder()
+                .setRobotId(logicalClock.getRobotId())
+                .setTimestamp(logicalClock.incrementAndGet())
+                .build();
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }

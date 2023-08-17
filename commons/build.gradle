@@ -7,6 +7,9 @@ repositories {
 }
 
 dependencies {
+    // https://mvnrepository.com/artifact/jakarta.xml.bind/jakarta.xml.bind-api
+    implementation group: 'jakarta.xml.bind', name: 'jakarta.xml.bind-api', version: '4.0.0'
+
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: '5.10.0-M1'
     // https://mvnrepository.com/artifact/org.mockito/mockito-core

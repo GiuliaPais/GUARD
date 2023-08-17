@@ -1,10 +1,11 @@
 package io.github.giuliapais.api.resources;
 
-import io.github.giuliapais.api.models.MapPosition;
 import io.github.giuliapais.api.models.Robot;
 import io.github.giuliapais.api.models.RobotCreateResponse;
 import io.github.giuliapais.api.services.RobotService;
+import io.github.giuliapais.commons.models.RobotPosUpdate;
 import io.github.giuliapais.exceptions.IdPresentException;
+import io.github.giuliapais.utils.MessagePrinter;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -33,6 +34,9 @@ public class RobotResource {
         boolean removed = robotService.removeRobot(id);
         Response response;
         if (removed) {
+            MessagePrinter.printMessage("Delete request: robot " + id + " removed from the grid",
+                    MessagePrinter.WARNING_FORMAT, true);
+            robotService.printGridStatus();
             response = Response.ok().build();
         } else {
             response = Response.status(Response.Status.NOT_FOUND).build();
@@ -41,31 +45,15 @@ public class RobotResource {
     }
 
     @PUT
-    @Path("{id}")
-    public Response update(@PathParam("id") int id, Robot robot) {
-        boolean updated = robotService.updateRobot(id, robot);
-        if (!updated) {
-            return Response.status(Response.Status.NOT_MODIFIED).build();
-        } else {
-            return Response
-                    .ok()
-                    .build();
-        }
+    public Response updateRobots(List<RobotPosUpdate> changes) {
+        robotService.updateRobotPositions(changes);
+        MessagePrinter.printMessage(
+                "Update request: robot positions updated",
+                MessagePrinter.WARNING_FORMAT,
+                true
+        );
+        robotService.printGridStatus();
+        return Response.ok().build();
     }
 
-    @PUT
-    @Path("{id}/position")
-    public Response updatePosition(@PathParam("id") int id, MapPosition newPos) {
-        int status = robotService.updatePosition(id, newPos);
-        if (status == 1) {
-            return Response.status(Response.Status.NOT_FOUND).build();
-        } else if (status == 2) {
-            return Response.status(Response.Status.NOT_MODIFIED).build();
-        } else {
-            return Response
-                    .ok()
-                    .entity(newPos)
-                    .build();
-        }
-    }
 }

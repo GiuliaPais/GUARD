@@ -1,9 +1,10 @@
-package io.github.giuliapais.robotsnetwork.comm;
+package io.github.giuliapais.robotsnetwork.comm.p2p;
 
 import io.github.giuliapais.commons.DistrictBalancer;
+import io.github.giuliapais.commons.models.MapPosition;
+import io.github.giuliapais.robotsnetwork.comm.*;
 import io.github.giuliapais.utils.MessagePrinter;
 import io.grpc.*;
-import jakarta.ws.rs.client.Client;
 
 import java.beans.IndexedPropertyChangeEvent;
 import java.beans.PropertyChangeEvent;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 public class P2PServiceManager {
     /* ATTRIBUTES --------------------------------------------------------------------------------------------------- */
     static final int MAX_RETRY = 3;
+    static final int START_BACKOFF_TIME = 2000;
     private final int robotId;
     private final int port;
     private final String selfIpAddress;
@@ -23,8 +25,6 @@ public class P2PServiceManager {
     private Server grpcServer;
     private final RobotRepairStatus repairStatus;
     private final DistrictBalancer districtBalancer;
-    private final Client restClient;
-    private final String uriApi;
 
     private final HashMap<Integer, ManagedChannel> channels = new HashMap<>();
     private final HashMap<Integer, RepairServiceGrpc.RepairServiceBlockingStub> repairStubs = new HashMap<>();
@@ -33,6 +33,11 @@ public class P2PServiceManager {
     private LogicalClock logicalClock;
     private final AbstractCrashEventHandler[] crashEventHandlers;
     private final LoadBalancer loadBalancer;
+
+    // Listeners
+    private final MutExListener mutExListener = new MutExListener();
+    private final RemovalListener removalListener = new RemovalListener();
+    private final AddListener addListener = new AddListener();
 
     /* NESTED CLASSES ----------------------------------------------------------------------------------------------- */
     static class RepairAcks {
@@ -80,6 +85,31 @@ public class P2PServiceManager {
 
         public synchronized HashMap<Integer, Integer> getAcksReceived() {
             return acksReceived;
+        }
+    }
+
+    class AddListener implements PropertyChangeListener {
+        @Override
+        public void propertyChange(PropertyChangeEvent evt) {
+            if (evt instanceof IndexedPropertyChangeEvent) {
+                IndexedPropertyChangeEvent event = (IndexedPropertyChangeEvent) evt;
+                if (event.getPropertyName().equals("peers")) {
+                    Peer oldPeer = (Peer) event.getOldValue();
+                    Peer newPeer = (Peer) event.getNewValue();
+                    if (oldPeer == null & newPeer != null) {
+                        ManagedChannel channel;
+                        synchronized (channels) {
+                            channel = channels.get(newPeer.getId());
+                            if (channel == null) {
+                                channel = ManagedChannelBuilder.forAddress(newPeer.getIpAddress(), newPeer.getPort())
+                                        .usePlaintext()
+                                        .build();
+                                channels.put(newPeer.getId(), channel);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -133,26 +163,23 @@ public class P2PServiceManager {
 
     /* CONSTRUCTORS ------------------------------------------------------------------------------------------------- */
     public P2PServiceManager(int robotId, int port, String selfIpAddress,
-                             DistrictBalancer districtBalancer,
-                             Client restClient, String uriApi) {
+                             DistrictBalancer districtBalancer) {
         this.robotId = robotId;
         this.port = port;
         this.selfIpAddress = selfIpAddress;
         this.districtBalancer = districtBalancer;
-        this.restClient = restClient;
-        this.uriApi = uriApi;
         this.peers = ActivePeers.getInstance();
-        this.peers.addPropertyChangeListener(new MutExListener()); // TODO: on close remove the listener
-        this.peers.addPropertyChangeListener(new RemovalListener()); // TODO: on close remove the listener
+        this.peers.addPropertyChangeListener(mutExListener);
+        this.peers.addPropertyChangeListener(removalListener);
+        this.peers.addPropertyChangeListener(addListener);
         this.repairStatus = new RobotRepairStatus();
         this.logicalClock = LogicalClock.getInstance(robotId);
         this.crashEventHandlers = new AbstractCrashEventHandler[2];
-        this.crashEventHandlers[0] = new CrashEventHandlerIn();
+        this.crashEventHandlers[0] = new CrashEventHandlerIn(this.channels);
         this.crashEventHandlers[1] = new CrashEventHandlerOut(this.channels);
         this.crashEventHandlers[0].start();
         this.crashEventHandlers[1].start();
-        this.loadBalancer = new LoadBalancer(this.robotId, this.channels, this.districtBalancer,
-                this.restClient, this.uriApi);
+        this.loadBalancer = new LoadBalancer(this.robotId, this.channels, this.districtBalancer);
         this.loadBalancer.start();
         startGrpcServer();
     }
@@ -166,6 +193,7 @@ public class P2PServiceManager {
                 .addService(new RequestRepairImpl(this.repairStatus, this.robotId))
                 .addService(new CrashRecoveryImpl(this.robotId))
                 .addService(new DistrictBalancingImpl(this.robotId, this.districtBalancer))
+                .addService(new GracefulExitImpl(this.robotId))
                 .build();
         try {
             grpcServer.start();
@@ -189,22 +217,27 @@ public class P2PServiceManager {
             }
             IntroduceMeGrpc.IntroduceMeBlockingStub blockingStub = IntroduceMeGrpc.newBlockingStub(channel)
                     .withDeadlineAfter(10, TimeUnit.SECONDS);
+            MapPosition myPosition = districtBalancer.getRobotPosition(this.robotId);
             IntroduceMeRequest request = IntroduceMeRequest.newBuilder()
                     .setRobotId(this.robotId)
                     .setIpAddress(this.selfIpAddress)
                     .setPort(this.port)
-                    .setDistrict(this.districtBalancer.getDistrict(this.robotId))
+                    .setDistrict(myPosition.getDistrict())
+                    .setX(myPosition.getX())
+                    .setY(myPosition.getY())
                     .build();
 
             int retryCount = 0;
-            long backoffTime = 1000;
+            long backoffTime = START_BACKOFF_TIME;
             boolean success = false;
 
             while (retryCount < MAX_RETRY) {
                 try {
                     // Send the request and wait for the peer to respond to the introduction
                     IntroduceMeResponse response = blockingStub.introduceMe(request);
-                    districtBalancer.addRobot(response.getRobotId(), response.getDistrict());
+                    MapPosition peerPosition = new MapPosition(response.getDistrict(),
+                            response.getX(), response.getY());
+                    districtBalancer.addRobot(response.getRobotId(), peerPosition);
                     success = true;
                     break;
                 } catch (StatusRuntimeException e) {
@@ -273,7 +306,7 @@ public class P2PServiceManager {
                     .build();
 
             int retryCount = 0;
-            long backoffTime = 1000;
+            long backoffTime = START_BACKOFF_TIME;
             boolean success = false;
 
             while (retryCount < MAX_RETRY) {
@@ -315,6 +348,7 @@ public class P2PServiceManager {
 
     private List<Thread> setUpAccessRequests(List<Peer> randomPeers, String type, HashMap<Integer, Integer> acks) {
         List<Thread> accessThreads = new ArrayList<>();
+        long timestamp = logicalClock.incrementAndGet();
         for (Peer peer : randomPeers) {
             RepairServiceGrpc.RepairServiceBlockingStub stub;
             synchronized (repairStubs) {
@@ -324,7 +358,7 @@ public class P2PServiceManager {
                 Thread accessThread = new Thread(() -> {
                     AccessRequest request = AccessRequest.newBuilder()
                             .setRobotId(this.robotId)
-                            .setTimestamp(logicalClock.incrementAndGet())
+                            .setTimestamp(timestamp)
                             .setType(type)
                             .build();
                     try {
@@ -415,6 +449,45 @@ public class P2PServiceManager {
         MessagePrinter.printMessage("Repairs done!", MessagePrinter.INFO_FORMAT, true);
     }
 
+    private Thread getGoodbyeSender(Peer peer, long timestamp, List<Integer> acks) {
+        return new Thread(() -> {
+            // Retrieve the channel for the peer, if it does not exist create it
+            ManagedChannel channel;
+            synchronized (channels) {
+                channel = channels.get(peer.getId());
+                if (channel == null) {
+                    channel = ManagedChannelBuilder.forAddress(peer.getIpAddress(), peer.getPort())
+                            .usePlaintext()
+                            .build();
+                    channels.put(peer.getId(), channel);
+                }
+            }
+            // Create the stub
+            GracefulExitGrpc.GracefulExitBlockingStub blockingStub = GracefulExitGrpc.newBlockingStub(channel);
+            GoodbyeMessage message = GoodbyeMessage.newBuilder()
+                    .setRobotId(this.robotId)
+                    .setTimestamp(timestamp)
+                    .build();
+            try {
+                GoodbyeAck response = blockingStub.sayGoodbye(message);
+                logicalClock.compareAndAdjust(response.getTimestamp());
+                synchronized (acks) {
+                    acks.add(1);
+                }
+            } catch (StatusRuntimeException e) {
+                Status.Code code = e.getStatus().getCode();
+                if (code == Status.Code.UNAVAILABLE || code == Status.Code.UNKNOWN ||
+                        code == Status.Code.INTERNAL ||
+                        code == Status.Code.DEADLINE_EXCEEDED || code == Status.Code.ABORTED ||
+                        code == Status.Code.CANCELLED) {
+                    synchronized (acks) {
+                        acks.add(-1);
+                    }
+                }
+            }
+        });
+    }
+
     static void crashDetection(HashMap<Integer, Integer> acks, LogicalClock logicalClock) {
         // Check if any of the peers crashed
         if (!acks.isEmpty() && acks.values().stream().anyMatch(i -> i == -1)) {
@@ -474,6 +547,13 @@ public class P2PServiceManager {
         }
         if (!senders.isEmpty()) {
             senders.forEach(Thread::start);
+            senders.forEach(thread -> {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
         }
         try {
             this.repairAcks.waitForAcks();
@@ -483,6 +563,42 @@ public class P2PServiceManager {
         } catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while waiting for repair acks", e);
         }
+    }
+
+    public void gracefulStop() {
+        long timestamp = this.logicalClock.incrementAndGet();
+        List<Integer> acks = new ArrayList<>();
+        if (!peers.isEmpty()) {
+            MessagePrinter.printMessage("Sending goodbye messages...",
+                    MessagePrinter.INFO_FORMAT, true);
+            for (Peer peer : peers.getPeers()) {
+                Thread sender = getGoodbyeSender(peer, timestamp, acks);
+                sender.start();
+                try {
+                    sender.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
+        // Stop crash handlers
+        for (AbstractCrashEventHandler handler : crashEventHandlers) {
+            handler.interrupt();
+        }
+        // Stop the load balancer
+        loadBalancer.interrupt();
+        // Remove listeners
+        peers.removePropertyChangeListener(mutExListener);
+        peers.removePropertyChangeListener(removalListener);
+        peers.removePropertyChangeListener(addListener);
+        // Close channels
+        synchronized (channels) {
+            for (ManagedChannel channel : channels.values()) {
+                channel.shutdown();
+            }
+        }
+        // Stop grpc server
+        grpcServer.shutdown();
     }
 
 }

@@ -1,4 +1,4 @@
-package io.github.giuliapais.robotsnetwork.comm;
+package io.github.giuliapais.robotsnetwork.comm.p2p;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

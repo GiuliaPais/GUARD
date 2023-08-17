@@ -1,11 +1,15 @@
-package io.github.giuliapais.robotsnetwork.comm;
+package io.github.giuliapais.robotsnetwork.comm.p2p;
 
+import io.github.giuliapais.robotsnetwork.comm.CrashEvent;
+
+import java.util.HashMap;
 import java.util.PriorityQueue;
 
 public class CrashEventMonitor {
     private static CrashEventMonitor instanceOutgoing;
     private static CrashEventMonitor instanceIncoming;
     private PriorityQueue<EventWrapper> crashEvents = new PriorityQueue<>();
+    private HashMap<Integer, Boolean> pings = new HashMap<>();
 
     private static class EventWrapper implements Comparable<EventWrapper> {
         CrashEvent event;
@@ -83,6 +87,18 @@ public class CrashEventMonitor {
             wait();
         }
         return crashEvents.poll().getEvent();
+    }
+
+    public synchronized void addPing(int robotId, boolean crashed) {
+        pings.put(robotId, crashed);
+        notifyAll();
+    }
+
+    public synchronized boolean getPing(int peerId) throws InterruptedException {
+        while (pings.isEmpty() || !pings.containsKey(peerId)) {
+            wait();
+        }
+        return pings.get(peerId);
     }
 
 }

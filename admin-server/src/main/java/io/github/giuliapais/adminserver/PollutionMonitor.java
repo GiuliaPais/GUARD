@@ -1,28 +1,39 @@
 package io.github.giuliapais.adminserver;
 
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 
-public class PollutionMonitor extends Thread {
+public class PollutionMonitor {
     private final String MQTT_BROKER_ADDRESS = "tcp://localhost:1883";
-    private volatile boolean stop = false;
-    private MqttClient mqttClient;
+    private MqttAsyncClient mqttClient;
+
+    public PollutionMonitor() throws MqttException {
+        initMqttClient();
+    }
 
     private void initMqttClient() throws MqttException {
-        mqttClient = new MqttClient(MQTT_BROKER_ADDRESS,
-                MqttClient.generateClientId());
+        mqttClient = new MqttAsyncClient(
+                MQTT_BROKER_ADDRESS,
+                "ADMIN-SERVER");
         MqttConnectOptions options = new MqttConnectOptions();
         options.setAutomaticReconnect(true);
         options.setCleanSession(false);
         // Set the callbacks
         mqttClient.setCallback(new PollutionMonitorCallback());
-        mqttClient.connect(options);
+        mqttClient.connect(options).waitForCompletion();
+        subscribeToPollutionTopic();
     }
 
-
-    @Override
-    public void run() {
-        super.run();
+    private void subscribeToPollutionTopic() throws MqttException {
+        mqttClient.subscribe("greenfield/pollution/#", 1).waitForCompletion();
     }
+
+    public void disconnect() throws MqttException {
+        mqttClient.unsubscribe("#");
+        mqttClient.disconnect();
+        mqttClient.close();
+    }
+
 }

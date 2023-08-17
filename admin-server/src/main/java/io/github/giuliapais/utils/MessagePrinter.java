@@ -1,4 +1,4 @@
-package io.github.giuliapais.adminserver;
+package io.github.giuliapais.utils;
 
 import com.diogonunes.jcolor.AnsiFormat;
 import com.diogonunes.jcolor.Attribute;
@@ -7,8 +7,16 @@ import java.net.URI;
 
 import static com.diogonunes.jcolor.Ansi.colorize;
 
-class MessagePrinter {
-    private final String STRING_SEP = System.getProperty("line.separator");
+public class MessagePrinter {
+    public static final String STRING_SEP = System.getProperty("line.separator");
+    public static final String CMD_PROMPT = "> ";
+    public static final AnsiFormat ERROR_FORMAT = new AnsiFormat(Attribute.RED_TEXT());
+    public static final AnsiFormat SUCCESS_FORMAT = new AnsiFormat(Attribute.GREEN_TEXT());
+    public static final AnsiFormat INFO_FORMAT = new AnsiFormat(Attribute.CYAN_TEXT());
+    public static final AnsiFormat WARNING_FORMAT = new AnsiFormat(Attribute.YELLOW_TEXT());
+    public static final AnsiFormat ACCENT_FORMAT = new AnsiFormat(Attribute.MAGENTA_TEXT());
+    public static final AnsiFormat ACCENT_FORMAT_2 = new AnsiFormat(Attribute.TEXT_COLOR(245, 144, 66),
+            Attribute.BOLD());
 
     private String getServerWelcomeMessage() {
         AnsiFormat format = new AnsiFormat(Attribute.BRIGHT_CYAN_TEXT(), Attribute.BOLD());
@@ -37,10 +45,6 @@ class MessagePrinter {
                 format);
     }
 
-//    private String getCommandHelpMessage() {
-//
-//    }
-
     public void printServerWelcomeMessage() {
         String serverMessage = getServerWelcomeMessage();
         System.out.println(serverMessage);
@@ -54,5 +58,14 @@ class MessagePrinter {
     public void printStopServerMessage() {
         String serverMessage = getStopServerMessage();
         System.out.println(serverMessage);
+    }
+
+    public static void printMessage(String message, AnsiFormat format, boolean newLine) {
+        String formMessage = colorize(message, format);
+        if (newLine) {
+            System.out.println(formMessage);
+        } else {
+            System.out.print(formMessage);
+        }
     }
 }

@@ -1,5 +1,6 @@
-package io.github.giuliapais.robotsnetwork.comm;
+package io.github.giuliapais.robotsnetwork.comm.p2p;
 
+import io.github.giuliapais.robotsnetwork.comm.*;
 import io.github.giuliapais.utils.MessagePrinter;
 import io.grpc.stub.StreamObserver;
 

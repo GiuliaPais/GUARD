@@ -1,5 +1,7 @@
 package io.github.giuliapais.robotsnetwork.comm;
 
+import io.github.giuliapais.robotsnetwork.comm.p2p.ActivePeers;
+import io.github.giuliapais.robotsnetwork.comm.p2p.Peer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
