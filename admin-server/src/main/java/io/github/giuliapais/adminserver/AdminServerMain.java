@@ -1,6 +1,6 @@
 package io.github.giuliapais.adminserver;
 
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
@@ -10,10 +10,8 @@ import org.glassfish.jersey.server.ResourceConfig;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URI;
-import java.util.concurrent.TimeUnit;
 
 public class AdminServerMain {
-    private static final MessagePrinter messagePrinter = new MessagePrinter();
     private static PollutionMonitor pollutionMonitor;
 
     private static HttpServer launchHttpServer() throws IOException {
@@ -24,12 +22,12 @@ public class AdminServerMain {
         URI uri = URI.create("http://localhost:9090/api");
         HttpServer httpServer = GrizzlyHttpServerFactory.createHttpServer(uri, config);
         httpServer.start();
-        messagePrinter.printHTTPServerInitMessage(uri);
+        MessagePrinter.printHTTPServerInitMessage(uri);
         return (httpServer);
     }
 
     public static void main(String[] args) {
-        messagePrinter.printServerWelcomeMessage();
+        MessagePrinter.printServerWelcomeMessage();
         BufferedReader reader = new BufferedReader(new java.io.InputStreamReader(System.in));
 
         /* HTTP server initialization phase */
@@ -58,7 +56,7 @@ public class AdminServerMain {
                 System.out.print(">:");
                 String line = reader.readLine();
                 if (line != null && line.equals("quit")) {
-                    messagePrinter.printStopServerMessage();
+                    MessagePrinter.printStopServerMessage();
                     httpServer.shutdownNow();
                     pollutionMonitor.disconnect();
                     break;

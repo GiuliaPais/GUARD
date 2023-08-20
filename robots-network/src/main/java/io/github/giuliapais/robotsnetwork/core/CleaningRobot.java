@@ -6,7 +6,7 @@ import io.github.giuliapais.robotsnetwork.comm.p2p.ActivePeers;
 import io.github.giuliapais.robotsnetwork.comm.p2p.P2PServiceManager;
 import io.github.giuliapais.robotsnetwork.comm.p2p.Peer;
 import io.github.giuliapais.robotsnetwork.comm.rest.RestServiceManager;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 
 import java.util.List;
 import java.util.Random;

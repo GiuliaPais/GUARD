@@ -1,4 +1,4 @@
-package io.github.giuliapais.commons;
+package io.github.giuliapais.commons.models;
 
 import java.util.List;
 

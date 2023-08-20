@@ -3,7 +3,7 @@ package io.github.giuliapais.robotsnetwork.comm.p2p;
 import io.github.giuliapais.robotsnetwork.comm.CrashEvent;
 import io.github.giuliapais.robotsnetwork.comm.CrashRecoveryGrpc;
 import io.github.giuliapais.robotsnetwork.comm.PingMessage;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;

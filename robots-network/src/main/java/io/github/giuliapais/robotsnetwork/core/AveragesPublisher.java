@@ -2,14 +2,13 @@ package io.github.giuliapais.robotsnetwork.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.giuliapais.commons.SensorAverages;
+import io.github.giuliapais.commons.models.SensorAverages;
 import io.github.giuliapais.robotsnetwork.comm.p2p.ChangeDistrictMonitor;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 
-import java.util.HashMap;
 import java.util.List;
 
 public class AveragesPublisher extends Thread {

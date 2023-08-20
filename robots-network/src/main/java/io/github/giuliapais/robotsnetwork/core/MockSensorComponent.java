@@ -2,9 +2,7 @@ package io.github.giuliapais.robotsnetwork.core;
 
 import io.github.giuliapais.simulators.Measurement;
 import io.github.giuliapais.simulators.PM10Simulator;
-import io.github.giuliapais.utils.MessagePrinter;
-import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
+import io.github.giuliapais.commons.MessagePrinter;
 
 import java.util.ArrayList;
 import java.util.List;

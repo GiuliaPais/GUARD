@@ -1,11 +1,18 @@
 package io.github.giuliapais.commons;
 
+/**
+ * Represents the map of the Greenfield city.
+ * The map has 4 districts and spans 10x10 blocks.
+ */
 public class GreenfieldMap {
     private final District[] districts;
     private final byte width = 10;
     private final byte height = 10;
 
 
+    /**
+     * Creates a new GreenfieldMap object.
+     */
     public GreenfieldMap() {
         districts = new District[4];
         for (int i = 1; i < 5; i++) {
@@ -27,26 +34,33 @@ public class GreenfieldMap {
         }
     }
 
+    /**
+     * Returns an array of {@link District} objects representing the districts in the map.
+     *
+     * @return the array of districts in the map
+     */
     public District[] getDistricts() {
         return districts;
     }
 
+    /**
+     * Returns the district with the given id.
+     *
+     * @param id the id of the district
+     * @return the {@link District} with the given id
+     */
     public District getDistrict(int id) {
         return districts[id - 1];
     }
 
-    public byte getWidth() {
-        return width;
-    }
-
-    public byte getHeight() {
-        return height;
-    }
-
-    public boolean inDistrict(int x, int y, int district) {
-        return districts[district - 1].inDistrict(x, y);
-    }
-
+    /**
+     * Given a set of coordinates and a district id,
+     * returns true if the coordinates are in the district, false otherwise.
+     *
+     * @param coords   x and y coordinates as int array
+     * @param district the id of the district (1-4)
+     * @return true if the coordinates are in the district, false otherwise
+     */
     public boolean inDistrict(int[] coords, int district) {
         return districts[district - 1].inDistrict(coords);
     }

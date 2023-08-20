@@ -4,7 +4,7 @@ import io.github.giuliapais.robotsnetwork.comm.CrashEvent;
 import io.github.giuliapais.robotsnetwork.comm.CrashEventResponse;
 import io.github.giuliapais.robotsnetwork.comm.CrashRecoveryGrpc;
 import io.github.giuliapais.robotsnetwork.comm.rest.RestServiceManager;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 import io.grpc.ManagedChannel;
 
 import java.util.ArrayList;

@@ -5,7 +5,7 @@ import io.github.giuliapais.commons.models.MapPosition;
 import io.github.giuliapais.robotsnetwork.comm.IntroduceMeGrpc;
 import io.github.giuliapais.robotsnetwork.comm.IntroduceMeRequest;
 import io.github.giuliapais.robotsnetwork.comm.IntroduceMeResponse;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 import io.grpc.stub.StreamObserver;
 
 public class IntroductionImpl extends IntroduceMeGrpc.IntroduceMeImplBase {

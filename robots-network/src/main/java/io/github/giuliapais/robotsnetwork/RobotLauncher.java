@@ -8,7 +8,7 @@ import io.github.giuliapais.robotsnetwork.comm.p2p.Peer;
 import io.github.giuliapais.robotsnetwork.comm.rest.RestServiceManager;
 import io.github.giuliapais.robotsnetwork.core.CleaningRobot;
 import io.github.giuliapais.utils.InputValidator;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 import picocli.CommandLine;
 
 import java.io.IOException;

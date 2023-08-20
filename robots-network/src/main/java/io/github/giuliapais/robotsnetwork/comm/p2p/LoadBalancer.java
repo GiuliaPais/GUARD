@@ -4,7 +4,7 @@ import io.github.giuliapais.commons.DistrictBalancer;
 import io.github.giuliapais.commons.models.MapPosition;
 import io.github.giuliapais.robotsnetwork.comm.*;
 import io.github.giuliapais.robotsnetwork.comm.rest.RestServiceManager;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -240,8 +240,12 @@ public class LoadBalancer extends Thread {
                     "No need for load balancing at this moment",
                     MessagePrinter.INFO_FORMAT, true);
             loadBalancingMonitor.setState(LoadBalancingMonitor.LoadBalancingState.STEADY);
-            acks.clear();
-            positions.clear();
+            if (acks != null) {
+                acks.clear();
+            }
+            if (positions != null) {
+                positions.clear();
+            }
             return;
         }
         acks = new LoadBalancingAcks(peers.stream().map(Peer::getId).toList());

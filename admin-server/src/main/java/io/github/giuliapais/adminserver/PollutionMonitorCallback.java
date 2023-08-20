@@ -2,8 +2,7 @@ package io.github.giuliapais.adminserver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.giuliapais.api.services.PollutionDataService;
-import io.github.giuliapais.commons.SensorAverages;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.models.SensorAverages;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttMessage;

@@ -3,9 +3,10 @@ package io.github.giuliapais.api.resources;
 import io.github.giuliapais.api.models.Robot;
 import io.github.giuliapais.api.models.RobotCreateResponse;
 import io.github.giuliapais.api.services.RobotService;
+import io.github.giuliapais.commons.MessagePrinter;
+import io.github.giuliapais.commons.models.RobotInfo;
 import io.github.giuliapais.commons.models.RobotPosUpdate;
 import io.github.giuliapais.exceptions.IdPresentException;
-import io.github.giuliapais.utils.MessagePrinter;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -19,7 +20,7 @@ public class RobotResource {
     RobotService robotService = RobotService.getInstance();
 
     @GET
-    public List<Robot> getAll() {
+    public List<RobotInfo> getAll() {
         return robotService.getAllRobots();
     }
 

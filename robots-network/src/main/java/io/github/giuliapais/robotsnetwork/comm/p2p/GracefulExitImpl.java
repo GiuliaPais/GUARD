@@ -3,7 +3,7 @@ package io.github.giuliapais.robotsnetwork.comm.p2p;
 import io.github.giuliapais.robotsnetwork.comm.GoodbyeAck;
 import io.github.giuliapais.robotsnetwork.comm.GoodbyeMessage;
 import io.github.giuliapais.robotsnetwork.comm.GracefulExitGrpc;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 import io.grpc.stub.StreamObserver;
 
 public class GracefulExitImpl extends GracefulExitGrpc.GracefulExitImplBase {

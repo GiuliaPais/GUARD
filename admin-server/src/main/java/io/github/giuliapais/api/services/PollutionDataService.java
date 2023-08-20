@@ -1,6 +1,6 @@
 package io.github.giuliapais.api.services;
 
-import io.github.giuliapais.commons.SensorAverages;
+import io.github.giuliapais.commons.models.SensorAverages;
 import io.github.giuliapais.structures.PollutionDataStore;
 
 public class PollutionDataService {

@@ -3,12 +3,14 @@ package io.github.giuliapais.api.services;
 import io.github.giuliapais.commons.models.MapPosition;
 import io.github.giuliapais.api.models.Robot;
 import io.github.giuliapais.api.models.RobotCreateResponse;
+import io.github.giuliapais.commons.models.RobotInfo;
 import io.github.giuliapais.commons.models.RobotPosUpdate;
 import io.github.giuliapais.exceptions.IdPresentException;
 import io.github.giuliapais.commons.DistrictBalancer;
 import io.github.giuliapais.structures.RobotHashMap;
-import io.github.giuliapais.utils.MessagePrinter;
+import io.github.giuliapais.commons.MessagePrinter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,8 +78,19 @@ public class RobotService {
         return mapRemoved || districtRemoved;
     }
 
-    public List<Robot> getAllRobots() {
-        return List.copyOf(robots.getMap().values());
+    public List<RobotInfo> getAllRobots() {
+        // Gets robots ids, ipAddress and port
+        HashMap<Integer, Robot> map = robots.getMap();
+        // Gets robot positions
+        HashMap<Integer, MapPosition> positions = districtBalancer.getRobotPositions();
+        // Creates a list
+        List<RobotInfo> robotsInfo = new ArrayList<>();
+        for (Integer key : map.keySet()) {
+            Robot robot = map.get(key);
+            MapPosition position = positions.get(key);
+            robotsInfo.add(new RobotInfo(robot.getId(), robot.getIpAddress(), robot.getPort(), position));
+        }
+        return robotsInfo;
     }
 
     public void updateRobotPositions(List<RobotPosUpdate> changes) {

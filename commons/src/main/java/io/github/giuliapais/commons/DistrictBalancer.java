@@ -7,8 +7,9 @@ import java.util.stream.Collectors;
 
 
 /**
- * Helper class that, based on the structure of the map and the current status, monitors and balances the
- * robots in th grid.
+ * Helper class that, based on the structure of the map and the current status,
+ * monitors and balances the
+ * robots in the grid.
  */
 public class DistrictBalancer {
     /* ATTRIBUTES --------------------------------------------------------------------------------------------------- */
@@ -22,6 +23,11 @@ public class DistrictBalancer {
     private final Random random = new Random();
 
     /* CONSTRUCTORS ------------------------------------------------------------------------------------------------- */
+
+    /**
+     * Default constructor.
+     * Initializes the district register with the number of districts in the map.
+     */
     public DistrictBalancer() {
         int nDistricts = greenfieldMap.getDistricts().length;
         districtRegister = new HashMap<>(nDistricts);
@@ -35,10 +41,24 @@ public class DistrictBalancer {
 
 
     /* Public ---------- */
+
+    /**
+     * Returns the current district of the given robot.
+     *
+     * @param robotId the id of the robot
+     * @return the district id or null if the robot is not present
+     */
     public synchronized int getDistrict(int robotId) {
         return robotRegister.get(robotId);
     }
 
+    /**
+     * Returns the current map position of the given robot.
+     *
+     * @param robotId the id of the robot
+     * @return the map position or null if the robot is not present
+     * @see MapPosition
+     */
     public synchronized MapPosition getRobotPosition(int robotId) {
         return robotPositions.get(robotId);
     }
@@ -278,6 +298,11 @@ public class DistrictBalancer {
         return changes;
     }
 
+    /**
+     * Produces a snapshot of the current grid status that is useful to print.
+     *
+     * @return A map of district ids to lists of robot ids
+     */
     public synchronized HashMap<Integer, List<Integer>> getSnapshot() {
         HashMap<Integer, List<Integer>> gridStatus = (HashMap<Integer, List<Integer>>) robotRegister.entrySet().stream()
                 .collect(Collectors.groupingBy(Map.Entry::getValue,
@@ -288,5 +313,16 @@ public class DistrictBalancer {
             }
         }
         return gridStatus;
+    }
+
+    /**
+     * Returns a deep copy of the current robot positions map.
+     *
+     * @return A copy of the current robot positions map
+     */
+    public synchronized HashMap<Integer, MapPosition> getRobotPositions() {
+        HashMap<Integer, MapPosition> copy = new HashMap<>();
+        robotPositions.forEach((key, value) -> copy.put(key, new MapPosition(value)));
+        return copy;
     }
 }
