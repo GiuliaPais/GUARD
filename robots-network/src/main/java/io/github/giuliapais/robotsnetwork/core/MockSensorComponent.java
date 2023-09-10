@@ -10,7 +10,6 @@ import java.util.OptionalDouble;
 
 public class MockSensorComponent extends Thread {
 
-
     private final SensorReadingsBuffer buffer = new SensorReadingsBuffer();
     private final PM10Simulator pm10Simulator = new PM10Simulator(buffer);
     private final AveragesPublisher averagesPublisher;

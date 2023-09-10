@@ -153,24 +153,26 @@ public class RobotLauncher implements Runnable {
     }
 
     public static void main(String[] args) {
-//        Thread.setDefaultUncaughtExceptionHandler(
-//                (t, e) -> {
-//                    MessagePrinter.printMessage(">>> Something went wrong!" +
-//                                    MessagePrinter.STRING_SEP +
-//                                    e.getMessage() +
-//                                    MessagePrinter.STRING_SEP +
-//                                    e.getCause().getMessage(),
-//                            MessagePrinter.ERROR_FORMAT, true);
-//                    MessagePrinter.printQuitMessage();
-//                    if (cleaningRobot.isAlive()) {
-//                        cleaningRobot.stopMeGently();
-//                    }
-//                    if (client != null) {
-//                        client.close();
-//                    }
-//                    System.exit(0);
-//                }
-//        );
+        Thread.setDefaultUncaughtExceptionHandler(
+                (t, e) -> {
+                    MessagePrinter.printMessage(">>> Something went wrong!" +
+                                    MessagePrinter.STRING_SEP +
+                                    e.getMessage() +
+                                    MessagePrinter.STRING_SEP +
+                                    e.getCause().getMessage(),
+                            MessagePrinter.ERROR_FORMAT, true);
+                    MessagePrinter.printQuitMessage();
+                    if (cleaningRobot.isAlive()) {
+                        cleaningRobot.stopMeGently();
+                        try {
+                            cleaningRobot.join();
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                    System.exit(0);
+                }
+        );
         RobotLauncher robotLauncher = new RobotLauncher();
         int exitCode = new CommandLine(robotLauncher).execute(args);
         System.exit(exitCode);

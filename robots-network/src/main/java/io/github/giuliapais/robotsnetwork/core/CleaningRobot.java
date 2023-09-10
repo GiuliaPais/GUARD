@@ -82,31 +82,10 @@ public class CleaningRobot extends Thread {
 
     @Override
     public void run() {
-        // TODO: reactivate this
-//        MessagePrinter.printSensorInitMessage();
-
-//        mockSensorComponent.setUncaughtExceptionHandler((t, e) -> {
-//            MessagePrinter.printMessage(
-//                    "Something went wrong :(" +
-//                            MessagePrinter.STRING_SEP +
-//                            e.getMessage() +
-//                            MessagePrinter.STRING_SEP +
-//                            e.getCause().getMessage(),
-//                    MessagePrinter.ERROR_FORMAT,
-//                    true
-//            );
-//            MessagePrinter.printQuitMessage();
-//            this.interrupt();
-//        });
         mockSensorComponent.start();
 
         // Send introduction messages when joining the robots network
         p2pServiceManager.introduceMe();
-
-        // TODO: here goes all the proper robot logic
-        // - Simulate repair event every 10 seconds -> triggers mutual exclusion
-        //   repair can also be triggered by command line "fix"
-        // - Implement graceful exit
 
         while (!stop) {
             try {

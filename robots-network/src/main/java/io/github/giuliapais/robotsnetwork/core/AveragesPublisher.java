@@ -85,16 +85,6 @@ public class AveragesPublisher extends Thread {
         MqttConnectOptions options = new MqttConnectOptions();
         options.setAutomaticReconnect(true);
         options.setCleanSession(false);
-//        HashMap<String, String> will = new HashMap<>();
-//        will.put("robotId", String.valueOf(robotId));
-//        will.put("status", "offline");
-//        ObjectMapper mapper = new ObjectMapper();
-//        try {
-//            String payload = mapper.writeValueAsString(will);
-//            options.setWill(topic, payload.getBytes(), 2, false);
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException("Error while trying to serialize last will", e);
-//        }
         try {
             client.connect(options).waitForCompletion();
         } catch (MqttException e) {

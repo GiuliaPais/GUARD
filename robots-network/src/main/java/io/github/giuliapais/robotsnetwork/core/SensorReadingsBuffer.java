@@ -25,6 +25,8 @@ public class SensorReadingsBuffer implements Buffer {
     @Override
     public synchronized List<Measurement> readAllAndClean() {
         List<Measurement> allMeasurements = new ArrayList<>(buffer);
+        // Ensure that we consider only 8 measurements - the oldest ones
+        allMeasurements = allMeasurements.subList(0, WINDOW_SIZE);
         for (int i = 0; i < OVERLAP; i++) {
             buffer.removeFirst();
         }
